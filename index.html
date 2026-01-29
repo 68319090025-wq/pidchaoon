@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP8266 Sensor Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #1e88e5;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      font-size: 1.5em;
+    }
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .sensor {
+      display: flex;
+      justify-content: space-between;
+      margin: 12px 0;
+      font-size: 1.2em;
+    }
+    .status-ok { color: green; font-weight: bold; }
+    .status-warning { color: orange; font-weight: bold; }
+    .status-alert { color: red; font-weight: bold; }
+    .led-control {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .led-control button {
+      padding: 12px 24px;
+      margin: 0 10px;
+      font-size: 1em;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #fff;
+    }
+    .btn-on { background: #4caf50; }
+    .btn-off { background: #f44336; }
+  </style>
+</head>
+<body>
+
+<header>ESP8266 Sensor Dashboard</header>
+
+<div class="container">
+  <div class="sensor">Light: <span id="light">--</span></div>
+  <div class="sensor">Temperature: <span id="temp">--</span> °C</div>
+  <div class="sensor">Distance: <span id="distance">--</span> cm</div>
+  <div class="sensor">Status: <span id="status" class="status-ok">--</span></div>
+
+  <div class="led-control">
+    <button class="btn-on" onclick="setLED(1)">LED ON</button>
+    <button class="btn-off" onclick="setLED(0)">LED OFF</button>
+  </div>
+</div>
+
+<script>
+  // ฟังก์ชันดึงข้อมูลจาก ESP8266 (เช่น ESP8266 ส่งค่า JSON)
+  function updateSensors() {
+    fetch('/sensors')  // ESP8266 ต้องมี route /sensors ส่งค่า JSON
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('light').innerText = data.light;
+        document.getElementById('temp').innerText = data.temp.toFixed(1);
+        document.getElementById('distance').innerText = data.distance;
+
+        const statusEl = document.getElementById('status');
+        statusEl.innerText = data.status;
+
+        // เปลี่ยนสีตามสถานะ
+        if (data.status === 'OK') statusEl.className = 'status-ok';
+        else if (data.status.includes('Low Light') || data.status.includes('Object Close')) statusEl.className = 'status-warning';
+        else if (data.status.includes('High Temp')) statusEl.className = 'status-alert';
+      })
+      .catch(err => console.error('Error fetching sensor data:', err));
+  }
+
+  // ฟังก์ชันสั่ง LED
+  function setLED(state) {
+    fetch(`/led?state=${state}`)  // ESP8266 ต้องมี route /led?state=1 หรือ 0
+      .then(response => console.log('LED set:', state))
+      .catch(err => console.error('Error setting LED:', err));
+  }
+
+  // อัปเดตทุก 2 วินาที
+  setInterval(updateSensors, 2000);
+  updateSensors(); // เรียกทันทีตอนโหลดหน้า
+</script>
+
+</body>
+</html>
